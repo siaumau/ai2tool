@@ -309,8 +309,36 @@ document.addEventListener('DOMContentLoaded', function() {
          state.currentStep = processSteps.length -1; // Indicate completion
     }
 
+    // Function to make a real API request for code generation
+    async function generateCodeFromAPI(prompt) {
+        try {
+            const response = await fetch('http://localhost:3101/proxy/generate-code', { // Updated to use proxy server
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${state.apiKey}`
+                },
+                body: JSON.stringify({
+                    prompt: prompt,
+                    model: state.selectedModel
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            return data.generatedCode;
+        } catch (error) {
+            console.error('Error generating code:', error);
+            showError(`生成失敗: ${error.message}`);
+            return null;
+        }
+    }
+
     // Handle Form Submission (Generation Request)
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault(); // Prevent default form submission
         state.prompt = promptInput.value.trim(); // Update state from active input
 
@@ -322,7 +350,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!state.apiKey) {
             showError('請在設置中輸入 OpenRouter API 金鑰');
-            // Optionally open settings modal: toggleSettingsModal();
             return;
         }
 
@@ -339,10 +366,16 @@ document.addEventListener('DOMContentLoaded', function() {
         showProcessStep(0); // Show first step
         setGeneratingState(true); // Disable button, show loading state
 
-        // ** ACTUAL API CALL WOULD GO HERE **
-        // Using simulation for now:
-        console.log("Simulating generation for prompt:", state.prompt);
-        simulateGeneration();
+        try {
+            const generatedCode = await generateCodeFromAPI(state.prompt);
+            if (generatedCode) {
+                completeGeneration(generatedCode);
+            } else {
+                showError('生成失敗，未收到代碼。');
+            }
+        } finally {
+            setGeneratingState(false); // Re-enable button
+        }
     }
 
     // Reset Process Steps Visuals
@@ -391,259 +424,6 @@ document.addEventListener('DOMContentLoaded', function() {
          generationProcess.classList.add('hidden');
          setGeneratingState(false); // Re-enable button on error
     }
-
-     // Simulate AI Generation Process
-     function simulateGeneration() {
-         // Example code to return (replace with actual API result)
-         const sampleCode = `<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Snake Game</title>
-<style>
-body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #1a1d23; margin: 0; font-family: sans-serif; flex-direction: column; color: #e5e7eb; }
-#game-container { text-align: center; background-color: #1f2937; padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-canvas { border: 1px solid #4b5563; background-color: #111827; display: block; margin: 10px auto; }
-h1 { color: #f9fafb; margin-bottom: 10px; font-size: 1.8em; }
-#score { color: #9ca3af; font-size: 1.2em; margin-top: 5px; }
-#controls { color: #6b7280; margin-top: 15px; font-size: 0.9em; }
-#gameOverScreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; z-index: 10; font-size: 1.5em; visibility: hidden; opacity: 0; transition: visibility 0s 0.3s, opacity 0.3s linear; }
-#gameOverScreen.visible { visibility: visible; opacity: 1; transition: opacity 0.3s linear; }
-#gameOverScreen h2 { color: #ef4444; margin-bottom: 15px; font-size: 1.5em; }
-#gameOverScreen p { margin: 5px 0; }
-#gameOverScreen button { background-color: #2563eb; color: white; border: none; padding: 10px 20px; font-size: 0.8em; border-radius: 5px; cursor: pointer; margin-top: 20px; transition: background-color 0.2s; }
-#gameOverScreen button:hover { background-color: #1d4ed8; }
-</style>
-</head>
-<body>
-<div id="game-container">
-<h1>貪吃蛇遊戲</h1>
-<canvas id="gameCanvas" width="400" height="400"></canvas>
-<div id="score">分數: <span id="scoreValue">0</span></div>
-<div id="controls">使用方向鍵或 WASD 控制蛇</div>
-</div>
-
-<div id="gameOverScreen">
-<h2>遊戲結束!</h2>
-<p>最終分數: <span id="finalScore">0</span></p>
-<button id="restartButton">重新開始</button>
-</div>
-
-<script>
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const scoreElement = document.getElementById('scoreValue');
-const gameOverScreen = document.getElementById('gameOverScreen');
-const finalScoreElement = document.getElementById('finalScore');
-const restartButton = document.getElementById('restartButton');
-
-const gridSize = 20;
-const tileCount = canvas.width / gridSize;
-let speed = 7; // Initial speed (updates per second)
-
-let snake, velocityX, velocityY, nextVelocityX, nextVelocityY, food, score, gameLoopTimeout, isGameOver;
-
-function initGame() {
-    snake = [{ x: Math.floor(tileCount / 2), y: Math.floor(tileCount / 2) }];
-    velocityX = 0;
-    velocityY = 0;
-    nextVelocityX = 0; // Buffer for next move input
-    nextVelocityY = 0;
-    score = 0;
-    isGameOver = false;
-    speed = 7; // Reset speed
-    scoreElement.textContent = score;
-    gameOverScreen.classList.remove('visible');
-    placeFood();
-    clearTimeout(gameLoopTimeout); // Clear any existing loop
-    gameLoop(); // Start the loop
-}
-
-function gameLoop() {
-    if (isGameOver) return;
-
-    gameLoopTimeout = setTimeout(() => {
-        clearCanvas();
-        moveSnake();
-        if (checkCollision()) {
-            endGame();
-            return; // Stop loop if collision detected
-        }
-        drawFood();
-        drawSnake();
-        requestAnimationFrame(gameLoop); // Keep loop running
-    }, 1000 / speed);
-}
-
-function clearCanvas() {
-    ctx.fillStyle = '#111827'; // Dark background
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
-
-function moveSnake() {
-    // Apply buffered velocity
-    velocityX = nextVelocityX;
-    velocityY = nextVelocityY;
-
-    const head = { x: snake[0].x + velocityX, y: snake[0].y + velocityY };
-    snake.unshift(head); // Add new head
-
-    // Check if food was eaten
-    if (head.x === food.x && head.y === food.y) {
-        score += 10;
-        scoreElement.textContent = score;
-        placeFood();
-        // Increase speed every 50 points (adjust as needed)
-        if (score > 0 && score % 50 === 0 && speed < 15) {
-            speed += 1;
-             console.log("Speed increased to:", speed);
-        }
-    } else {
-        snake.pop(); // Remove tail if no food eaten
-    }
-}
-
-function checkCollision() {
-    const head = snake[0];
-    // Wall collision
-    if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
-        return true;
-    }
-    // Self collision (check against body parts, excluding head)
-    for (let i = 1; i < snake.length; i++) {
-        if (head.x === snake[i].x && head.y === snake[i].y) {
-            return true;
-        }
-    }
-    return false;
-}
-
-function placeFood() {
-     let foodX, foodY, validPosition;
-     do {
-         validPosition = true;
-         foodX = Math.floor(Math.random() * tileCount);
-         foodY = Math.floor(Math.random() * tileCount);
-         // Ensure food doesn't spawn on the snake
-         for (const part of snake) {
-             if (part.x === foodX && part.y === foodY) {
-                 validPosition = false;
-                 break;
-             }
-         }
-     } while (!validPosition);
-
-     food = { x: foodX, y: foodY, color: getRandomColor() };
-}
-
-function drawSnake() {
-    snake.forEach((part, index) => {
-         // Head color
-         if (index === 0) {
-             ctx.fillStyle = '#4ade80'; // Bright green head
-         } else {
-              // Body color (simple green)
-              // const shade = Math.max(0.3, 1 - index * 0.05); // Fade tail slightly
-              ctx.fillStyle = '#10b981'; // Emerald green body
-         }
-         ctx.fillRect(part.x * gridSize + 1, part.y * gridSize + 1, gridSize - 2, gridSize - 2); // Slightly smaller rect with gap
-
-         // Simple eye for the head
-         if (index === 0) {
-            ctx.fillStyle = 'white';
-            const eyeSize = gridSize / 6;
-            let eyeX = part.x * gridSize + gridSize / 2;
-            let eyeY = part.y * gridSize + gridSize / 2;
-            // Offset eyes based on direction
-            if (velocityX === 1) eyeX += eyeSize;
-            if (velocityX === -1) eyeX -= eyeSize;
-            if (velocityY === 1) eyeY += eyeSize;
-            if (velocityY === -1) eyeY -= eyeSize;
-             ctx.beginPath();
-             ctx.arc(eyeX, eyeY, eyeSize, 0, Math.PI * 2);
-             ctx.fill();
-         }
-    });
-}
-
-function drawFood() {
-    ctx.fillStyle = food.color;
-    ctx.fillRect(food.x * gridSize + 1, food.y * gridSize + 1, gridSize - 2, gridSize - 2);
-    // Simple highlight
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.fillRect(food.x * gridSize + gridSize/4, food.y * gridSize + gridSize/4, gridSize/4, gridSize/4);
-}
-
- function endGame() {
-     isGameOver = true;
-     clearTimeout(gameLoopTimeout); // Stop the game loop
-     finalScoreElement.textContent = score;
-     gameOverScreen.classList.add('visible');
-     console.log("Game Over! Score:", score);
- }
-
-function getRandomColor() {
-    const colors = ['#f87171', '#fb923c', '#facc15', '#a78bfa', '#f472b6', '#60a5fa'];
-    return colors[Math.floor(Math.random() * colors.length)];
-}
-
-// Keyboard Input Handler
-function handleKeyDown(e) {
-     if (isGameOver) return; // Ignore input if game over
-
-     let requestedVX = 0;
-     let requestedVY = 0;
-
-     switch (e.key.toLowerCase()) {
-         case 'arrowup': case 'w':
-             if (velocityY === 0) requestedVY = -1; // Prevent moving directly opposite
-             break;
-         case 'arrowdown': case 's':
-              if (velocityY === 0) requestedVY = 1;
-             break;
-         case 'arrowleft': case 'a':
-              if (velocityX === 0) requestedVX = -1;
-             break;
-         case 'arrowright': case 'd':
-              if (velocityX === 0) requestedVX = 1;
-             break;
-         default:
-             return; // Ignore other keys
-     }
-
-     // Buffer the next move if valid input
-     if (requestedVX !== 0 || requestedVY !== 0) {
-         nextVelocityX = requestedVX;
-         nextVelocityY = requestedVY;
-     }
-}
-
-// Event Listeners
-document.addEventListener('keydown', handleKeyDown);
-restartButton.addEventListener('click', initGame);
-
-// Initial game start
-initGame();
-<\/script> // Escaped closing script tag for safety in template literal
-</body>
-</html>`;
-
-         // Simulate API latency and step progression
-         let currentSimulatedStep = 0;
-         const stepDelay = 500; // milliseconds per step
-
-         const stepInterval = setInterval(() => {
-             currentSimulatedStep++;
-             if (currentSimulatedStep < processSteps.length) {
-                 showProcessStep(currentSimulatedStep);
-             } else {
-                 clearInterval(stepInterval); // Stop simulation steps
-                 completeGeneration(sampleCode); // Complete with the result
-             }
-         }, stepDelay);
-     }
-
 
     // Complete Generation Process
     function completeGeneration(resultCode) {
