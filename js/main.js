@@ -228,35 +228,67 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Update Preview Iframe
     function updatePreview() {
-         if (state.generatedContent && previewFrame) {
+        if (state.generatedContent && previewFrame) {
             try {
-               const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow?.document;
-               if (previewDoc) {
-                   previewDoc.open();
-                   // Sanitize or carefully handle generatedContent if it comes from untrusted sources
-                   previewDoc.write(state.generatedContent);
-                   previewDoc.close();
-               } else {
-                   console.error("Could not access preview iframe document.");
-               }
+                const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow?.document;
+                if (previewDoc) {
+                    // 清除現有內容
+                    while (previewDoc.body.firstChild) {
+                        previewDoc.body.removeChild(previewDoc.body.firstChild);
+                    }
+
+                    // 創建一個臨時容器
+                    const container = previewDoc.createElement('div');
+                    container.innerHTML = state.generatedContent;
+
+                    // 將內容添加到預覽文檔
+                    previewDoc.documentElement.innerHTML = `
+                        <html>
+                            <head>
+                                <meta charset="UTF-8">
+                                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            </head>
+                            <body></body>
+                        </html>
+                    `;
+
+                    // 將生成的內容安全地添加到 body
+                    Array.from(container.children).forEach(child => {
+                        previewDoc.body.appendChild(previewDoc.importNode(child, true));
+                    });
+                } else {
+                    console.error("Could not access preview iframe document.");
+                }
             } catch (error) {
-                 console.error("Error updating preview iframe:", error);
-                 // Display error in preview?
-                 const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow?.document;
-                 if (previewDoc) {
-                     previewDoc.open();
-                     previewDoc.write(`<html><body><h1>Preview Error</h1><p>${error.message}</p></body></html>`);
-                     previewDoc.close();
-                 }
+                console.error("Error updating preview iframe:", error);
+                const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow?.document;
+                if (previewDoc) {
+                    previewDoc.documentElement.innerHTML = `
+                        <html>
+                            <head>
+                                <meta charset="UTF-8">
+                            </head>
+                            <body>
+                                <h1>Preview Error</h1>
+                                <p>${error.message}</p>
+                            </body>
+                        </html>
+                    `;
+                }
             }
         } else if (!state.generatedContent) {
             // Clear preview if no content
-             const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow?.document;
-             if (previewDoc) {
-                   previewDoc.open();
-                   previewDoc.write('<html><body></body></html>'); // Empty document
-                   previewDoc.close();
-             }
+            const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow?.document;
+            if (previewDoc) {
+                previewDoc.documentElement.innerHTML = `
+                    <html>
+                        <head>
+                            <meta charset="UTF-8">
+                        </head>
+                        <body></body>
+                    </html>
+                `;
+            }
         }
     }
 
@@ -312,24 +344,38 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to make a real API request for code generation
     async function generateCodeFromAPI(prompt) {
         try {
-            const response = await fetch('http://localhost:3101/proxy/generate-code', { // Updated to use proxy server
+            console.log('Sending request with prompt:', prompt);
+            const response = await fetch('http://localhost:3101/proxy/generate-code', {
                 method: 'POST',
                 headers: {
+                    'Accept': 'application/json',
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${state.apiKey}`
                 },
                 body: JSON.stringify({
                     prompt: prompt,
-                    model: state.selectedModel
+                    model: state.selectedModel,
+                    messages: [{ role: "user", content: prompt }]
                 })
             });
 
             if (!response.ok) {
-                throw new Error(`API Error: ${response.statusText}`);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `API Error: ${response.statusText}`);
             }
 
             const data = await response.json();
-            return data.generatedCode;
+            console.log('Received response:', data);
+
+            // 從回應中提取生成的代碼
+            const generatedCode = data.generatedCode ||
+                                data.choices?.[0]?.message?.content ||
+                                data.content;
+
+            if (!generatedCode) {
+                throw new Error('No code generated from API response');
+            }
+            return generatedCode;
         } catch (error) {
             console.error('Error generating code:', error);
             showError(`生成失敗: ${error.message}`);
