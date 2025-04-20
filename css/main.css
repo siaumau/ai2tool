@@ -1,0 +1,141 @@
+       /* 自定義樣式 */
+       .bg-gray-850 {
+        background-color: #1a1d23;
+    }
+
+    /* 動畫 */
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideIn {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    @keyframes pulse {
+        0% { opacity: 0.6; }
+        50% { opacity: 1; }
+        100% { opacity: 0.6; }
+    }
+
+    /* 應用動畫 */
+    .fade-in {
+        animation: fadeIn 0.3s ease forwards;
+    }
+
+    .slide-in {
+        animation: slideIn 0.4s ease forwards;
+    }
+
+    /* 生成按鈕載入動畫 */
+    .generating .generate-icon {
+        animation: pulse 1.5s infinite;
+    }
+
+    /* 處理步驟動畫 */
+    .process-step {
+        position: relative;
+    }
+
+    .process-step::before {
+        content: '';
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #374151; /* gray-700 */
+        left: -8px; /* Adjust based on padding/margin */
+        top: 6px; /* Adjust alignment */
+        transform: translateX(-50%);
+    }
+
+    .process-step.active {
+        color: #9ca3af; /* gray-400 */
+    }
+
+    .process-step.active::before {
+        background-color: #3b82f6; /* blue-500 */
+    }
+
+    .process-step.completed {
+        color: #d1d5db; /* gray-300 */
+    }
+
+    .process-step.completed::before {
+        background-color: #10b981; /* emerald-500 */
+    }
+
+    /* 代碼區域樣式 */
+    #generatedCode {
+        font-family: 'Fira Code', Consolas, Monaco, 'Courier New', monospace;
+        tab-size: 2;
+        -moz-tab-size: 2;
+        -o-tab-size: 2;
+    }
+
+    /* 滾動條樣式 (Webkit browsers) */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #1f2937; /* gray-800 */
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #4b5563; /* gray-600 */
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #6b7280; /* gray-500 */
+    }
+
+    /* 彈出框淡入淡出 */
+    #settingsModal {
+        /* Ensure initial state allows transition */
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        pointer-events: none; /* Prevent interaction when hidden */
+    }
+    #settingsModal:not(.hidden) {
+         opacity: 1;
+         pointer-events: auto; /* Allow interaction when visible */
+    }
+
+    #settingsModal.show {
+        /* 'show' class might not be needed if using :not(.hidden) */
+         animation: fadeIn 0.2s ease forwards;
+    }
+
+    #settingsModal .bg-gray-800 {
+         /* Use transform for better performance */
+         transform: translateY(20px);
+         opacity: 0;
+         transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    #settingsModal:not(.hidden) .bg-gray-800 {
+        transform: translateY(0);
+        opacity: 1;
+        /* animation: slideIn 0.3s ease forwards; remove if using transition */
+    }
+
+    /* 响應式調整 */
+    @media (max-width: 1024px) {
+        #twoColumnLayout {
+            /* Grid already handles stacking, but ensure it's flex if needed */
+            /* display: flex;
+            flex-direction: column; */
+            gap: 1.5rem; /* Equivalent to gap-6 */
+        }
+
+        #previewFrame {
+            height: 300px;
+        }
+        #generatedCode {
+            max-height: 300px; /* Match preview height potentially */
+        }
+    }
