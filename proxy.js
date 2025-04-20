@@ -56,16 +56,14 @@ app.post('/proxy/generate-code', async (req, res) => {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`,
-                'HTTP-Referer': 'http://localhost:3101',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+                'HTTP-Referer': 'http://localhost:3101'
             },
             body: JSON.stringify({
                 model: model || "anthropic/claude-3-opus-20240229",
-                stream: true,
                 messages: [
                     {
                         role: "system",
-                        content: "你是一個專業的網頁遊戲開發專家。請生成完整可執行的代碼，包含 HTML、CSS 和 JavaScript。確保代碼經過優化且易於理解。"
+                        content: "You are an expert web game developer. Please generate complete, working code for the game including HTML, CSS, and JavaScript. Keep the code efficient and well-documented."
                     },
                     {
                         role: "user",
@@ -86,52 +84,22 @@ app.post('/proxy/generate-code', async (req, res) => {
             });
         }
 
-        // 設置響應頭，支持流式傳輸
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
+        const data = await response.json();
+        console.log('OpenRouter response data:', JSON.stringify(data, null, 2));
 
-        // 創建可讀流
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let accumulatedCode = '';
-
-        try {
-            while (true) {
-                const { done, value } = await reader.read();
-                
-                if (done) {
-                    // 發送完整的代碼
-                    res.write(`data: ${JSON.stringify({ done: true, generatedCode: accumulatedCode })}\n\n`);
-                    res.end();
-                    break;
-                }
-
-                // 解碼收到的數據
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n');
-                
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        try {
-                            const data = JSON.parse(line.slice(6));
-                            if (data.choices && data.choices[0]?.delta?.content) {
-                                const content = data.choices[0].delta.content;
-                                accumulatedCode += content;
-                                // 發送部分內容
-                                res.write(`data: ${JSON.stringify({ content })}\n\n`);
-                            }
-                        } catch (e) {
-                            console.warn('Error parsing SSE message:', e);
-                        }
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('Stream processing error:', error);
-            res.write(`data: ${JSON.stringify({ error: 'Stream processing error' })}\n\n`);
-            res.end();
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            console.error('Invalid response format from OpenRouter');
+            return res.status(500).json({ error: 'Invalid response format from API' });
         }
+
+        const generatedCode = data.choices[0].message.content;
+        if (!generatedCode) {
+            console.error('No code generated in response');
+            return res.status(500).json({ error: 'No code generated in response' });
+        }
+
+        console.log('Successfully generated code');
+        res.json({ generatedCode });
     } catch (error) {
         console.error('Proxy server error:', error);
         res.status(500).json({

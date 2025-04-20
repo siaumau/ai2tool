@@ -345,6 +345,10 @@ document.addEventListener('DOMContentLoaded', function() {
     async function generateCodeFromAPI(prompt) {
         try {
             console.log('Sending request with prompt:', prompt);
+
+            // 更新 UI 以顯示生成進度
+            generatedCodeElement.textContent = '';
+
             const response = await fetch('http://localhost:3101/proxy/generate-code', {
                 method: 'POST',
                 headers: {
@@ -354,8 +358,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify({
                     prompt: prompt,
-                    model: state.selectedModel,
-                    messages: [{ role: "user", content: prompt }]
+                    model: state.selectedModel
                 })
             });
 
@@ -367,15 +370,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             console.log('Received response:', data);
 
-            // 從回應中提取生成的代碼
-            const generatedCode = data.generatedCode ||
-                                data.choices?.[0]?.message?.content ||
-                                data.content;
-
-            if (!generatedCode) {
-                throw new Error('No code generated from API response');
+            if (!data.generatedCode) {
+                throw new Error('No code generated in response');
             }
-            return generatedCode;
+
+            return data.generatedCode;
         } catch (error) {
             console.error('Error generating code:', error);
             showError(`生成失敗: ${error.message}`);
