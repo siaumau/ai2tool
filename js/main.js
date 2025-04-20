@@ -232,30 +232,76 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow?.document;
                 if (previewDoc) {
-                    // 清除現有內容
-                    while (previewDoc.body.firstChild) {
-                        previewDoc.body.removeChild(previewDoc.body.firstChild);
-                    }
+                    const cleanContent = state.generatedContent;
 
-                    // 創建一個臨時容器
-                    const container = previewDoc.createElement('div');
-                    container.innerHTML = state.generatedContent;
+                    // 解析 HTML 內容中的 script 和其他元素
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = cleanContent;
 
-                    // 將內容添加到預覽文檔
+                    // 分別收集 scripts、styles 和其他 HTML 內容
+                    const scripts = Array.from(tempDiv.getElementsByTagName('script'));
+                    const styles = Array.from(tempDiv.getElementsByTagName('style'));
+                    const links = Array.from(tempDiv.getElementsByTagName('link'));
+
+                    // 移除所有 script 和 style 標籤，只留下其他 HTML
+                    scripts.forEach(script => script.remove());
+                    styles.forEach(style => style.remove());
+                    links.forEach(link => link.remove());
+
+                    // 設置基本的 HTML 結構並添加 Chart.js CDN
                     previewDoc.documentElement.innerHTML = `
                         <html>
                             <head>
                                 <meta charset="UTF-8">
                                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                <base target="_blank">
+                                <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                             </head>
                             <body></body>
                         </html>
                     `;
 
-                    // 將生成的內容安全地添加到 body
-                    Array.from(container.children).forEach(child => {
-                        previewDoc.body.appendChild(previewDoc.importNode(child, true));
+                    // 先添加 styles
+                    styles.forEach(style => {
+                        previewDoc.head.appendChild(previewDoc.importNode(style, true));
                     });
+
+                    // 添加 link 標籤
+                    links.forEach(link => {
+                        previewDoc.head.appendChild(previewDoc.importNode(link, true));
+                    });
+
+                    // 添加主要的 HTML 內容
+                    previewDoc.body.innerHTML = tempDiv.innerHTML;
+
+                    // 建立一個 Promise 數組來追踪所有外部腳本的加載
+                    const scriptLoadPromises = [];
+
+                    // 最後添加並執行 scripts
+                    scripts.forEach(script => {
+                        const newScript = previewDoc.createElement('script');
+                        if (script.src) {
+                            // 如果是外部腳本，創建一個加載 Promise
+                            const loadPromise = new Promise((resolve, reject) => {
+                                newScript.onload = resolve;
+                                newScript.onerror = reject;
+                            });
+                            scriptLoadPromises.push(loadPromise);
+                            newScript.src = script.src;
+                        } else {
+                            // 如果是內聯腳本，包裝在一個立即解析的 Promise 中
+                            newScript.textContent = script.textContent;
+                            scriptLoadPromises.push(Promise.resolve());
+                        }
+                        previewDoc.body.appendChild(newScript);
+                    });
+
+                    // 等待所有腳本加載完成
+                    Promise.all(scriptLoadPromises)
+                        .catch(error => {
+                            console.error('Error loading scripts:', error);
+                        });
+
                 } else {
                     console.error("Could not access preview iframe document.");
                 }
