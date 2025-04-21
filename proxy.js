@@ -23,12 +23,12 @@ app.use((req, res, next) => {
 // Middleware
 app.use(cors());
 app.use(express.json());
-// 新增：靜態檔案服務，提供 index.html, style.css, js 目錄等靜態資源
+// 新增：靜態檔案服務，提供 main.html, style.css, js 目錄等靜態資源
 app.use(express.static(path.resolve(__dirname)));
 
 // 在靜態資源中間件之後新增
-app.get(['/', '/index.html'], (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+app.get(['/', '/main.html'], (req, res) => {
+    res.sendFile(path.join(__dirname, 'main.html'));
 });
 
 // 測試路由
@@ -125,10 +125,10 @@ app.post('/proxy/save-code', (req, res) => {
     try {
         const rootDir = path.resolve(__dirname);
         // 儲存 HTML, CSS, JS 檔案
-        fs.writeFileSync(path.join(rootDir, 'index.html'), html, 'utf-8');
+        fs.writeFileSync(path.join(rootDir, 'main.html'), html, 'utf-8');
         fs.writeFileSync(path.join(rootDir, 'style.css'), css, 'utf-8');
         fs.writeFileSync(path.join(rootDir, 'js', 'script.js'), jsCode, 'utf-8');
-        console.log('檔案已成功儲存：index.html, style.css, js/script.js');
+        console.log('main.html, style.css, js/script.js');
         res.json({ success: true });
     } catch (err) {
         console.error('儲存檔案失敗：', err);

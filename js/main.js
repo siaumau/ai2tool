@@ -238,20 +238,26 @@ document.addEventListener('DOMContentLoaded', function() {
         if (state.generatedHTML) {
             const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow?.document;
             if (previewDoc) {
-                previewDoc.documentElement.innerHTML = `
-                    <!DOCTYPE html>
-                    <html lang="zh-TW">
-                    <head>
-                        <meta charset="UTF-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        ${state.generatedCSS ? `<style>${state.generatedCSS}</style>` : ''}
-                    </head>
-                    <body>
-                        ${state.generatedHTML}
-                        ${state.generatedJS ? `<script>${state.generatedJS}</script>` : ''}
-                    </body>
-                    </html>
-                `;
+                // 使用 document.write 建立完整 HTML 結構
+                previewDoc.open();
+                previewDoc.write(`<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    ${state.generatedCSS ? `<style>${state.generatedCSS}</style>` : ''}
+</head>
+<body>
+    ${state.generatedHTML}
+</body>
+</html>`);
+                previewDoc.close();
+                // 動態插入並執行 JS 代碼
+                if (state.generatedJS) {
+                    const scriptEl = previewDoc.createElement('script');
+                    scriptEl.textContent = state.generatedJS;
+                    previewDoc.body.appendChild(scriptEl);
+                }
             }
             return;
         }
