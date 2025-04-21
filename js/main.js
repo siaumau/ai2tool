@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 promptText = '創建一個互動式網頁，包含一個簡單的表單和動態顯示結果的區域。使用現代CSS設計，支持響應式佈局。';
                 break;
             case '遊戲':
-                promptText = '創建一個簡單的貪吃蛇遊戲，使用HTML5 Canvas。蛇應該能夠通過鍵盤操控，吃到食物後會變長，碰到牆壁或自己會結束遊戲。';
+                promptText = '創建一個簡單的貪吃蛇遊戲，UI要專業，且要有計分功能與重玩按鈕，使用HTML5 Canvas。蛇應該能夠通過鍵盤操控，吃到食物後會變長，碰到牆壁或自己會結束遊戲。';
                 break;
             case '數據可視化':
                 promptText = '創建一個數據可視化面板，使用柱狀圖和折線圖展示一組銷售數據。包含互動元素，讓用戶可以切換顯示不同時間段的數據。';
@@ -233,8 +233,12 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow?.document;
                 if (previewDoc) {
-                    const cleanContent = state.generatedContent;
-
+                    // 轉換外部資源路徑
+                    let cleanContent = state.generatedContent;
+                    cleanContent = cleanContent
+                        .replace(/href="style\.css"/g, 'href="css/main.css"')
+                        .replace(/href="styles\.css"/g, 'href="css/main.css"')
+                        .replace(/src="script\.js"/g, 'src="js/main.js"');
                     // 解析 HTML 內容中的 script 和其他元素
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = cleanContent;
