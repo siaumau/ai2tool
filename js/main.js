@@ -1,4 +1,4 @@
-// 程式開始，立即執行初始化
+// 主程式開始，直接執行
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOMContentLoaded 觸發，初始化應用');
     // Element References
