@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 
@@ -21,6 +23,13 @@ app.use((req, res, next) => {
 // Middleware
 app.use(cors());
 app.use(express.json());
+// 新增：靜態檔案服務，提供 index.html, style.css, js 目錄等靜態資源
+app.use(express.static(path.resolve(__dirname)));
+
+// 在靜態資源中間件之後新增
+app.get(['/', '/index.html'], (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // 測試路由
 app.get('/proxy/test', (req, res) => {
@@ -110,6 +119,23 @@ app.post('/proxy/generate-code', async (req, res) => {
     }
 });
 
+// 新增儲存代碼檔案的路由
+app.post('/proxy/save-code', (req, res) => {
+    const { html, css, js: jsCode } = req.body;
+    try {
+        const rootDir = path.resolve(__dirname);
+        // 儲存 HTML, CSS, JS 檔案
+        fs.writeFileSync(path.join(rootDir, 'index.html'), html, 'utf-8');
+        fs.writeFileSync(path.join(rootDir, 'style.css'), css, 'utf-8');
+        fs.writeFileSync(path.join(rootDir, 'js', 'script.js'), jsCode, 'utf-8');
+        console.log('檔案已成功儲存：index.html, style.css, js/script.js');
+        res.json({ success: true });
+    } catch (err) {
+        console.error('儲存檔案失敗：', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // 啟動伺服器
 const PORT = 3101;
 app.listen(PORT, () => {
@@ -117,4 +143,5 @@ app.listen(PORT, () => {
     console.log('Available routes:');
     console.log('- GET /proxy/test');
     console.log('- POST /proxy/generate-code');
+    console.log('- POST /proxy/save-code');
 });

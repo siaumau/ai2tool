@@ -229,6 +229,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Update Preview Iframe
     function updatePreview() {
+        // 如果已經解析出 HTML 區塊，建立新的預覽文件
+        if (state.generatedHTML) {
+            const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow?.document;
+            if (previewDoc) {
+                previewDoc.documentElement.innerHTML = `
+                    <!DOCTYPE html>
+                    <html lang="zh-TW">
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        ${state.generatedCSS ? `<style>${state.generatedCSS}</style>` : ''}
+                    </head>
+                    <body>
+                        ${state.generatedHTML}
+                        ${state.generatedJS ? `<script>${state.generatedJS}</script>` : ''}
+                    </body>
+                    </html>
+                `;
+            }
+            return;
+        }
         if (state.generatedContent && previewFrame) {
             try {
                 const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow?.document;
@@ -522,30 +543,67 @@ document.addEventListener('DOMContentLoaded', function() {
          setGeneratingState(false); // Re-enable button on error
     }
 
+    // 新增函數：解析 Markdown code fences 中的 HTML、CSS、JS 區塊
+    function parseGeneratedContent(raw) {
+        const htmlMatch = raw.match(/```html\s*([\s\S]*?)```/i);
+        const cssMatch = raw.match(/```css\s*([\s\S]*?)```/i);
+        const jsMatch = raw.match(/```(?:javascript|js)\s*([\s\S]*?)```/i);
+        return {
+            html: htmlMatch ? htmlMatch[1].trim() : '',
+            css: cssMatch ? cssMatch[1].trim() : '',
+            js: jsMatch ? jsMatch[1].trim() : ''
+        };
+    }
+
     // Complete Generation Process
     function completeGeneration(resultCode) {
         if (!resultCode) {
             showError("生成失敗，未收到代碼。");
             return;
         }
-        // Update code display
-        generatedCodeElement.textContent = resultCode;
+        // 解析並拆分 HTML, CSS, JS 區塊
+        const parsed = parseGeneratedContent(resultCode);
+        state.generatedHTML = parsed.html;
+        state.generatedCSS = parsed.css;
+        state.generatedJS = parsed.js;
 
-        // Store generated content in state
+        // 更新 Code 顯示：預設顯示 HTML 區塊
+        generatedCodeElement.textContent = state.generatedHTML || resultCode;
+
+        // 保存原始生成內容
         state.generatedContent = resultCode;
-        state.codeGenerated = true; // Mark that code exists
+        state.codeGenerated = true;
 
-        // Update preview immediately if that tab is active
+        // 儲存檔案至伺服器
+        fetch('http://localhost:3101/proxy/save-code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                html: state.generatedHTML,
+                css: state.generatedCSS,
+                js: state.generatedJS
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                console.log('檔案已儲存至伺服器');
+            } else {
+                console.error('存檔失敗:', data.error);
+            }
+        })
+        .catch(err => {
+            console.error('儲存檔案時發生錯誤:', err);
+        });
+
+        // 更新預覽（若為預覽 tab）
         if (!previewTab.classList.contains('hidden')) {
             updatePreview();
-        } else {
-            // Optionally switch to preview tab automatically?
-            // switchTab('preview');
         }
 
-        // Finalize UI state
-        setGeneratingState(false); // Re-enable button
-        showAllProcessSteps(); // Mark all steps visually complete
+        // 最後設定 UI 狀態
+        setGeneratingState(false);
+        showAllProcessSteps();
         console.log("Generation complete.");
     }
 
