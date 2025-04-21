@@ -45,7 +45,8 @@ document.addEventListener('DOMContentLoaded', function() {
         isGenerating: false,
         codeGenerated: false,
         currentStep: -1, // Initialize to -1
-        generatedContent: null
+        generatedContent: null,
+        isPreviewExpanded: false
     };
 
     // Initialization
@@ -100,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Tab switching
         codeTabBtn.addEventListener('click', () => switchTab('code'));
-        previewTabBtn.addEventListener('click', () => switchTab('preview'));
+        previewTabBtn.addEventListener('click', toggleFullPreview);
 
         // Close settings modal on outside click
         window.addEventListener('click', function(e) {
@@ -249,12 +250,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     links.forEach(link => link.remove());
 
                     // 設置基本的 HTML 結構並添加 Chart.js CDN
+                    const baseHref = window.location.href;
                     previewDoc.documentElement.innerHTML = `
                         <html>
                             <head>
                                 <meta charset="UTF-8">
                                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                <base target="_blank">
+                                <base href="${baseHref}" target="_blank">
                                 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                             </head>
                             <body></body>
@@ -541,6 +543,28 @@ document.addEventListener('DOMContentLoaded', function() {
         setGeneratingState(false); // Re-enable button
         showAllProcessSteps(); // Mark all steps visually complete
         console.log("Generation complete.");
+    }
+
+    // 切換預覽面板寬度（展開/還原）
+    function toggleFullPreview() {
+        // 切換到預覽分頁
+        switchTab('preview');
+        // 僅在生成後可展開/還原
+        if (!state.codeGenerated) return;
+        const leftArea = twoColumnLayout.children[0];
+        const rightArea = twoColumnLayout.children[1];
+        if (!state.isPreviewExpanded) {
+            // 隱藏左側，擴展右側至整行
+            leftArea.style.display = 'none';
+            rightArea.classList.remove('lg:col-span-2');
+            rightArea.classList.add('lg:col-span-5');
+        } else {
+            // 還原左側顯示與右側寬度
+            leftArea.style.display = '';
+            rightArea.classList.remove('lg:col-span-5');
+            rightArea.classList.add('lg:col-span-2');
+        }
+        state.isPreviewExpanded = !state.isPreviewExpanded;
     }
 
     // Initialize the application
