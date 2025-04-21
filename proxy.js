@@ -124,15 +124,13 @@ app.post('/proxy/save-code', (req, res) => {
     const { html, css, js: jsCode } = req.body;
     try {
         const rootDir = path.resolve(__dirname);
-        // 處理 HTML 路徑：將 script.js 更新到 js/script.js
-        let processedHtml = html
-            .replace(/src="script\.js"/g, 'src="script.js"')
-            .replace(/href="style\.css"/g, 'href="style.css"');
+        // 處理 HTML 路徑：不做額外修改
+        let processedHtml = html;
 
-        // 儲存 HTML, CSS, JS 檔案
+        // 直接將 HTML, CSS, JS 檔案存放在根目錄下
         fs.writeFileSync(path.join(rootDir, 'index.html'), processedHtml, 'utf-8');
         fs.writeFileSync(path.join(rootDir, 'style.css'), css, 'utf-8');
-        fs.writeFileSync(path.join(rootDir,  'script.js'), jsCode, 'utf-8');
+        fs.writeFileSync(path.join(rootDir, 'script.js'), jsCode, 'utf-8');
         console.log('檔案已成功儲存：index.html, style.css, script.js');
         res.json({ success: true });
     } catch (err) {

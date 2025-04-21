@@ -247,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     ${state.generatedCSS ? `<style>${state.generatedCSS}</style>` : ''}
 </head>
-<body>
+<body style="padding:30px;margin-top:100px;margin-bottom:100px;">
     ${state.generatedHTML}
 </body>
 </html>`);
