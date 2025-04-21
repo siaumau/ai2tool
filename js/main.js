@@ -1,4 +1,6 @@
+// 程式開始，立即執行初始化
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded 觸發，初始化應用');
     // Element References
     const singleColumnLayout = document.getElementById('singleColumnLayout');
     const twoColumnLayout = document.getElementById('twoColumnLayout');
@@ -51,6 +53,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialization
     function init() {
+        // 額外將生成按鈕 click 事件綁定到 handleSubmit，確保能響應點擊
+        generateBtn.addEventListener('click', handleSubmit);
+        generateBtnSplit.addEventListener('click', handleSubmit);
         apiKeyInput.value = state.apiKey;
         modelSelect.value = state.selectedModel;
 
@@ -457,17 +462,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handle Form Submission (Generation Request)
     async function handleSubmit(e) {
+        console.log('handleSubmit 被觸發', e);
         e.preventDefault(); // Prevent default form submission
         state.prompt = promptInput.value.trim(); // Update state from active input
 
         if (!state.prompt) {
-            showError('請輸入需求描述');
+            alert('請輸入需求描述');
             promptInput.focus();
             return;
         }
 
         if (!state.apiKey) {
-            showError('請在設置中輸入 OpenRouter API 金鑰');
+            alert('請在設置中輸入 OpenRouter API 金鑰');
+            toggleSettingsModal();
             return;
         }
 
@@ -629,6 +636,6 @@ document.addEventListener('DOMContentLoaded', function() {
         state.isPreviewExpanded = !state.isPreviewExpanded;
     }
 
-    // Initialize the application
+    // 呼叫 init 初始化應用
     init();
 });
