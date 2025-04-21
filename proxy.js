@@ -119,16 +119,21 @@ app.post('/proxy/generate-code', async (req, res) => {
     }
 });
 
-// 新增儲存代碼檔案的路由
+// 新增儲存檔案的路由
 app.post('/proxy/save-code', (req, res) => {
     const { html, css, js: jsCode } = req.body;
     try {
         const rootDir = path.resolve(__dirname);
+        // 處理 HTML 路徑：將 script.js 更新到 js/script.js
+        let processedHtml = html
+            .replace(/src="script\.js"/g, 'src="script.js"')
+            .replace(/href="style\.css"/g, 'href="style.css"');
+
         // 儲存 HTML, CSS, JS 檔案
-        fs.writeFileSync(path.join(rootDir, 'main.html'), html, 'utf-8');
+        fs.writeFileSync(path.join(rootDir, 'index.html'), processedHtml, 'utf-8');
         fs.writeFileSync(path.join(rootDir, 'style.css'), css, 'utf-8');
-        fs.writeFileSync(path.join(rootDir, 'js', 'script.js'), jsCode, 'utf-8');
-        console.log('main.html, style.css, js/script.js');
+        fs.writeFileSync(path.join(rootDir,  'script.js'), jsCode, 'utf-8');
+        console.log('檔案已成功儲存：index.html, style.css, script.js');
         res.json({ success: true });
     } catch (err) {
         console.error('儲存檔案失敗：', err);

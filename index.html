@@ -1,0 +1,30 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>銷售數據可視化面板</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>銷售數據可視化面板</h1>
+        <div class="chart-container">
+            <canvas id="barChart"></canvas>
+            <canvas id="lineChart"></canvas>
+        </div>
+        <div class="control-panel">
+            <label for="time-period">選擇時間段：</label>
+            <select id="time-period">
+                <option value="week">本周</option>
+                <option value="month">本月</option>
+                <option value="quarter">本季</option>
+            </select>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

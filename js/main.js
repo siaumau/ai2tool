@@ -270,7 +270,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     cleanContent = cleanContent
                         .replace(/href="style\.css"/g, 'href="css/main.css"')
                         .replace(/href="styles\.css"/g, 'href="css/main.css"')
-                        .replace(/src="script\.js"/g, 'src="js/main.js"');
+                        .replace(/src="script\.js"/g, 'src="main.js"');
                     // 解析 HTML 內容中的 script 和其他元素
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = cleanContent;
